@@ -2,232 +2,388 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Garlic Orbit Shooter</title>
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
     body{
-      margin:0;
-      min-height:100vh;
-      display:grid;
-      place-items:center;
       background: radial-gradient(1200px 800px at 50% 20%, #182a66 0%, #070a12 55%, #02030a 100%);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      user-select:none;
-      -webkit-user-select:none;
-      touch-action:none;
-      overflow:hidden;
-    }
-    .wrap{ width:min(980px, 100vw); padding:12px; position:relative; }
-    canvas{
-      width:100%;
-      height:auto;
-      aspect-ratio:16/9;
-      display:block;
-      border-radius:18px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(0,0,0,0.18);
-      box-shadow: 0 18px 70px rgba(0,0,0,0.55);
-    }
-    .hint{
-      margin-top:10px;
-      opacity:0.8;
-      font-size:14px;
-      line-height:1.35;
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      justify-content:space-between;
-    }
-    .kbd{
-      padding:3px 8px;
-      border-radius:9px;
-      border:1px solid rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      overscroll-behavior: none;
     }
 
-    /* Nickname + Leaderboard overlay */
-    .overlay {
-      position:absolute;
-      inset: 12px;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      pointer-events:auto;
+    .stage{
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 0;
     }
-    .overlay.show { display:flex; }
-    .panel{
-      width:min(720px, 92vw);
-      background: rgba(0,0,0,0.55);
-      border: 1px solid rgba(255,255,255,0.14);
+
+    .frame{
+      position: relative;
+      width: min(980px, 100vw);
+      height: min(660px, 100vh);
       border-radius: 18px;
-      padding: 16px;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 20px 80px rgba(0,0,0,0.55);
-      display:grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.12);
+      box-shadow: 0 18px 70px rgba(0,0,0,0.55);
+      overflow: hidden;
     }
-    @media (max-width: 720px){
-      .panel{ grid-template-columns: 1fr; }
+
+    @media (max-width: 720px), (pointer: coarse) {
+      .frame{
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+      }
     }
-    .title{
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: .5px;
-      margin: 0 0 6px 0;
+
+    canvas{
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: rgba(0,0,0,0.18);
+      touch-action: none;
     }
-    .sub{
-      margin: 0 0 12px 0;
-      opacity: .85;
-      line-height: 1.35;
-    }
-    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    input{
-      flex: 1;
-      min-width: 180px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.08);
-      color:#fff;
-      font-weight: 700;
-      outline: none;
-    }
-    button{
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.10);
-      color:#fff;
-      font-weight: 900;
-      cursor:pointer;
-    }
-    button:active { transform: translateY(1px); }
-    .lb{
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 14px;
-      padding: 12px;
-      background: rgba(255,255,255,0.06);
-    }
-    .lb h3{
-      margin:0 0 10px 0;
-      font-size: 16px;
-      letter-spacing: .4px;
-    }
-    .lb ol{ margin:0; padding-left: 18px; }
-    .lb li{
-      margin: 6px 0;
-      display:flex;
-      justify-content:space-between;
+
+    .topbar{
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
       gap: 10px;
-      font-weight: 700;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
     }
-    .muted{ opacity:.75; font-weight:600; }
-    .warn{ margin-top:10px; opacity:.75; font-size:12px; line-height:1.3; }
     .pill{
-      display:inline-flex;
-      gap:8px;
-      align-items:center;
-      padding: 6px 10px;
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.35);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      font-size: 14px;
+      color: rgba(255,255,255,0.92);
+    }
+    .pill strong{ font-weight: 800; }
+    .btn{
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.10);
+      color: rgba(255,255,255,0.92);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font: 700 13px system-ui, sans-serif;
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      background: rgba(80,255,150,0.18);
+      border-color: rgba(80,255,150,0.28);
+    }
+    .btn.danger{
+      background: rgba(255,70,70,0.14);
+      border-color: rgba(255,70,70,0.22);
+    }
+
+    .overlay{
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .overlay.show{ display: flex; }
+
+    .panel{
+      width: min(560px, 96vw);
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(10,12,22,0.72);
+      box-shadow: 0 22px 90px rgba(0,0,0,0.65);
+      padding: 18px;
+    }
+    .title{
+      font: 900 34px system-ui, sans-serif;
+      margin: 4px 0 8px 0;
+      letter-spacing: 0.5px;
+      color: rgba(255,255,255,0.96);
+      text-align: center;
+    }
+    .sub{
+      text-align: center;
+      color: rgba(255,255,255,0.78);
+      font: 600 14px system-ui, sans-serif;
+      margin-bottom: 14px;
+      line-height: 1.35;
+    }
+    .grid{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 12px 0;
+    }
+    .card{
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
       background: rgba(255,255,255,0.06);
-      font-weight: 800;
+      color: rgba(255,255,255,0.9);
+      font-size: 14px;
+    }
+    .card .k{ opacity: 0.75; font-weight: 700; font-size: 12px; }
+    .card .v{ font: 900 22px system-ui, sans-serif; margin-top: 4px; }
+
+    .row{
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .field{
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.25);
+      border-radius: 14px;
+      padding: 10px 12px;
+      margin-top: 10px;
+    }
+    .field label{
+      font: 800 12px system-ui, sans-serif;
+      opacity: 0.8;
+    }
+    .field input{
+      width: 220px;
+      max-width: 55vw;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.92);
+      font: 700 14px system-ui, sans-serif;
+      outline: none;
+    }
+
+    .tabs{
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin: 12px 0 6px;
+    }
+
+    .tab{
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.85);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font: 800 12px system-ui, sans-serif;
+      cursor: pointer;
+    }
+    .tab.active{
+      background: rgba(120,160,255,0.16);
+      border-color: rgba(120,160,255,0.28);
+      color: rgba(255,255,255,0.95);
+    }
+
+    .leaderboard{
+      margin-top: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      overflow: hidden;
+    }
+    .lbRow{
+      display: grid;
+      grid-template-columns: 44px 1fr 92px;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.05);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font: 700 13px system-ui, sans-serif;
+      color: rgba(255,255,255,0.90);
+    }
+    .lbRow:first-child{ border-top: none; }
+    .lbRow .rank{ opacity: 0.75; }
+    .lbRow .name{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lbRow .score{ text-align: right; font-weight: 900; }
+
+    .help{
+      margin-top: 12px;
+      font: 600 12px system-ui, sans-serif;
+      color: rgba(255,255,255,0.75);
+      line-height: 1.4;
+      text-align: center;
     }
   </style>
 </head>
+
 <body>
-  <div class="wrap">
-    <canvas id="game" width="960" height="540" aria-label="Garlic Orbit Shooter"></canvas>
+  <div class="stage">
+    <div class="frame">
+      <canvas id="game" aria-label="Garlic Orbit Shooter"></canvas>
 
-    <div id="uiOverlay" class="overlay">
-      <div class="panel">
-        <div>
+      <div class="topbar">
+        <div class="pill" id="hudLeft">
+          <span>👤 <strong id="hudName">Player</strong></span>
+          <span>•</span>
+          <span>Best: <strong id="hudBest">0</strong></span>
+          <span>•</span>
+          <span>Last: <strong id="hudLast">0</strong></span>
+        </div>
+
+        <div class="pill" id="hudRight">
+          <span>Score: <strong id="hudScore">0</strong></span>
+          <span>•</span>
+          <span>Lives: <strong id="hudLives">5</strong></span>
+          <button class="btn" id="btnPause" title="Pause (P / Esc)">⏸ Pause</button>
+          <button class="btn" id="btnMenu" title="Menu">☰ Menu</button>
+        </div>
+      </div>
+
+      <!-- MENU OVERLAY -->
+      <div class="overlay show" id="menuOverlay" role="dialog" aria-modal="true">
+        <div class="panel">
           <div class="title">GARLIC ORBIT</div>
-          <p class="sub">
-            • Shoot 🧄 to gain <b>+1</b><br>
-            • If 🧄 reaches bottom: <b>-1</b><br>
-            • Touch red <b>U</b>: <b>-1 life</b><br>
-            • Auto-shoot is ON ✅
-          </p>
-
-          <div class="row" style="margin-bottom:10px;">
-            <span class="pill">Nickname</span>
-            <input id="nameInput" maxlength="16" placeholder="Enter your nickname" />
-            <button id="startBtn">Start</button>
+          <div class="sub" id="menuSubtitle">
+            Shoot 🧄 to gain score. If you miss 🧄 you lose score. Avoid touching the red U!
           </div>
 
-          <div class="row">
-            <span class="pill">Your Best: <span id="bestInline">0</span></span>
-            <span class="pill">Last Score: <span id="lastInline">0</span></span>
+          <div class="tabs">
+            <button class="tab active" id="tabMain">MAIN</button>
+            <button class="tab" id="tabBoard">LEADERBOARD</button>
           </div>
 
-          <div class="warn" id="apiWarn" style="display:none;">
-            Leaderboard API not set or blocked. The game will still work, but online leaderboard may not update.
+          <div id="viewMain">
+            <div class="grid">
+              <div class="card">
+                <div class="k">YOUR BEST</div>
+                <div class="v" id="menuBest">0</div>
+              </div>
+              <div class="card">
+                <div class="k">LAST SCORE</div>
+                <div class="v" id="menuLast">0</div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="nick">Nickname</label>
+              <input id="nick" maxlength="18" placeholder="Enter nickname" />
+            </div>
+
+            <div class="row">
+              <button class="btn primary" id="btnStart">▶ Start</button>
+              <button class="btn" id="btnResume">⏵ Resume</button>
+              <button class="btn" id="btnRestart">↻ Restart</button>
+              <button class="btn danger" id="btnResetBoard">🗑 Reset Leaderboard</button>
+            </div>
+
+            <div class="help">
+              <div><b>Phone:</b> drag to move. <b>Hold the player</b> to auto-shoot.</div>
+              <div><b>Computer:</b> move with A/D or ←/→. Auto-shoots while running. (Space also shoots.)</div>
+              <div>Pause: button / <b>P</b> / <b>Esc</b>. Menu: button / <b>M</b>.</div>
+            </div>
+          </div>
+
+          <div id="viewBoard" style="display:none;">
+            <div class="leaderboard" id="lb"></div>
+            <div class="row">
+              <button class="btn" id="btnBack">← Back</button>
+            </div>
+            <div class="help">Top 10 saved locally on this device.</div>
           </div>
         </div>
-
-        <div class="lb">
-          <h3>TOP 10 LEADERBOARD</h3>
-          <ol id="lbList">
-            <li><span class="muted">Loading...</span><span class="muted">--</span></li>
-          </ol>
-          <div class="warn muted">Tip: keep nicknames unique (max 16 chars).</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="hint">
-      <div>
-        PC: <span class="kbd">A/D</span> or <span class="kbd">←/→</span> move,
-        <span class="kbd">Space</span> start,
-        <span class="kbd">R</span> restart
-      </div>
-      <div>
-        Mobile: <span class="kbd">drag</span> to move, <span class="kbd">tap</span> to start
       </div>
     </div>
   </div>
 
 <script>
 (() => {
-  // ====== SET THIS ======
-  const LEADERBOARD_API_URL = "https://script.google.com/macros/s/AKfycbxeWe99syVgw7YVp2F7IUblgitt2vM10W_cYlSdeqvMrWSeavzyM9m3d-8VYADW8TV2vw/exec"; // <-- paste your Apps Script Web App URL here
-
   const canvas = document.getElementById("game");
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { alpha: true });
 
-  const overlay = document.getElementById("uiOverlay");
-  const nameInput = document.getElementById("nameInput");
-  const startBtn = document.getElementById("startBtn");
-  const lbList = document.getElementById("lbList");
-  const bestInline = document.getElementById("bestInline");
-  const lastInline = document.getElementById("lastInline");
-  const apiWarn = document.getElementById("apiWarn");
+  // Storage keys
+  const BEST_KEY = "garlic_orbit_best_v3";
+  const LAST_KEY = "garlic_orbit_last_v3";
+  const NAME_KEY = "garlic_orbit_name_v3";
+  const BOARD_KEY = "garlic_orbit_board_v3";
 
-  const BEST_KEY = "garlic_orbit_best_v4";
-  const NAME_KEY = "garlic_orbit_name_v1";
+  // UI elements
+  const menuOverlay = document.getElementById("menuOverlay");
+  const btnPause = document.getElementById("btnPause");
+  const btnMenu  = document.getElementById("btnMenu");
+  const btnStart = document.getElementById("btnStart");
+  const btnResume= document.getElementById("btnResume");
+  const btnRestart = document.getElementById("btnRestart");
+  const btnResetBoard = document.getElementById("btnResetBoard");
+  const nickInput = document.getElementById("nick");
+  const menuBest = document.getElementById("menuBest");
+  const menuLast = document.getElementById("menuLast");
+
+  const tabMain = document.getElementById("tabMain");
+  const tabBoard= document.getElementById("tabBoard");
+  const viewMain= document.getElementById("viewMain");
+  const viewBoard = document.getElementById("viewBoard");
+  const lbWrap = document.getElementById("lb");
+  const btnBack = document.getElementById("btnBack");
+
+  const hudName = document.getElementById("hudName");
+  const hudBest = document.getElementById("hudBest");
+  const hudLast = document.getElementById("hudLast");
+  const hudScore= document.getElementById("hudScore");
+  const hudLives= document.getElementById("hudLives");
+
+  const isCoarse = window.matchMedia("(pointer: coarse)").matches;
+  const isSmall  = window.matchMedia("(max-width: 720px)").matches;
+  const isPhoneLike = isCoarse || isSmall;
+
+  const clamp = (v,a,b) => Math.max(a, Math.min(b,v));
 
   const game = {
-    w: 960, h: 540,
+    w: 0, h: 0,
     running: false,
+    paused: false,
     over: false,
+    inMenu: true,
     lastTime: 0,
 
     score: 0,
     best: 0,
+    last: 0,
     lives: 5,
 
     spawnTimer: 0,
     spawnEvery: 650,
 
     enemyTimer: 0,
-    enemyEvery: 5000,
+    enemyEvery: 2000, // U spawns every 2 seconds
 
     shootTimer: 0,
-    shootCooldown: 160,
+    shootCooldown: 160, // ms
 
     difficultyTimer: 0,
 
@@ -235,6 +391,9 @@
     enemies: [],
     bullets: [],
     stars: [],
+
+    // mobile hold-to-autofire
+    holdFiring: false,
 
     input: {
       left: false, right: false,
@@ -244,124 +403,134 @@
       dragging: false
     },
 
-    playerName: "Player",
-    submittedThisRun: false
+    name: "Player"
   };
 
   const player = {
-    x: 480, y: 500,
+    x: 0, y: 0,
+    r: 22,
     speed: 520
   };
 
-  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-
-  function setupHiDPI() {
-    const cssW = canvas.clientWidth;
-    const cssH = canvas.clientHeight;
-    const ratio = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
-    canvas.width = Math.floor(cssW * ratio);
-    canvas.height = Math.floor(cssH * ratio);
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    game.w = cssW;
-    game.h = cssH;
+  // ===== Storage / leaderboard =====
+  function loadName(){
+    const n = (localStorage.getItem(NAME_KEY) || "").trim();
+    game.name = n ? n.slice(0,18) : "Player";
+    nickInput.value = game.name;
+    hudName.textContent = game.name;
   }
 
-  function makeStars(n) {
-    game.stars = [];
-    for (let i = 0; i < n; i++) {
-      game.stars.push({
-        x: Math.random() * game.w,
-        y: Math.random() * game.h,
-        r: Math.random() * 1.8 + 0.3,
-        v: Math.random() * 22 + 8
-      });
-    }
+  function saveName(){
+    const n = (nickInput.value || "").trim().slice(0,18);
+    game.name = n || "Player";
+    localStorage.setItem(NAME_KEY, game.name);
+    hudName.textContent = game.name;
   }
 
-  function loadLocal() {
-    const best = Number(localStorage.getItem(BEST_KEY));
-    game.best = Number.isFinite(best) ? best : 0;
-
-    const nm = (localStorage.getItem(NAME_KEY) || "").trim();
-    if (nm) game.playerName = nm.slice(0, 16);
-
-    bestInline.textContent = game.best;
-    lastInline.textContent = "0";
-    nameInput.value = game.playerName;
+  function loadBestLast(){
+    const b = Number(localStorage.getItem(BEST_KEY));
+    const l = Number(localStorage.getItem(LAST_KEY));
+    game.best = Number.isFinite(b) ? b : 0;
+    game.last = Number.isFinite(l) ? l : 0;
+    hudBest.textContent = String(game.best);
+    hudLast.textContent = String(game.last);
+    menuBest.textContent = String(game.best);
+    menuLast.textContent = String(game.last);
   }
 
-  function saveBestIfNeeded() {
-    if (game.score > game.best) {
+  function saveBestLast(){
+    game.last = game.score;
+    localStorage.setItem(LAST_KEY, String(game.last));
+
+    if (game.score > game.best){
       game.best = game.score;
       localStorage.setItem(BEST_KEY, String(game.best));
-      bestInline.textContent = game.best;
     }
+    loadBestLast();
   }
 
-  function setOverlay(show) {
-    overlay.classList.toggle("show", !!show);
+  function loadBoard(){
+    try{
+      const raw = localStorage.getItem(BOARD_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
   }
 
-  function sanitizeName(name) {
-    name = String(name || "").trim();
-    name = name.replace(/[^\w\s\-\.]/g, "");
-    if (name.length > 16) name = name.slice(0, 16);
-    if (name.length < 2) name = "Player";
-    return name;
+  function saveBoard(arr){
+    localStorage.setItem(BOARD_KEY, JSON.stringify(arr));
   }
 
-  async function apiGetLeaderboard() {
-    if (!LEADERBOARD_API_URL) {
-      apiWarn.style.display = "block";
+  function submitToBoard(){
+    const score = game.score;
+    if (!Number.isFinite(score)) return;
+    const entry = { name: game.name || "Player", score, t: Date.now() };
+    const board = loadBoard();
+    board.push(entry);
+    board.sort((a,b) => b.score - a.score);
+    saveBoard(board.slice(0,10));
+  }
+
+  function renderBoard(){
+    const board = loadBoard();
+    lbWrap.innerHTML = "";
+    if (!board.length){
+      const row = document.createElement("div");
+      row.className = "lbRow";
+      row.innerHTML = `<div class="rank">—</div><div class="name">No scores yet</div><div class="score">0</div>`;
+      lbWrap.appendChild(row);
       return;
     }
-    try {
-      const res = await fetch(`${LEADERBOARD_API_URL}?top=10`, { method: "GET" });
-      const data = await res.json();
-      if (!data || !data.ok) throw new Error("bad response");
-
-      renderLeaderboard(data.rows || []);
-      apiWarn.style.display = "none";
-    } catch (e) {
-      apiWarn.style.display = "block";
-    }
+    board.forEach((e,i) => {
+      const row = document.createElement("div");
+      row.className = "lbRow";
+      row.innerHTML = `<div class="rank">#${i+1}</div><div class="name">${escapeHtml(e.name || "Player")}</div><div class="score">${Number(e.score)||0}</div>`;
+      lbWrap.appendChild(row);
+    });
   }
 
-  async function apiSubmitScore(name, score) {
-    if (!LEADERBOARD_API_URL) return;
-    try {
-      await fetch(LEADERBOARD_API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, score })
-      });
-    } catch (e) {
-      // ignore (offline / blocked)
-    }
-  }
-
-  function renderLeaderboard(rows) {
-    const safe = Array.isArray(rows) ? rows.slice(0, 10) : [];
-    if (safe.length === 0) {
-      lbList.innerHTML = `<li><span class="muted">No scores yet</span><span class="muted">--</span></li>`;
-      return;
-    }
-    lbList.innerHTML = safe.map(r => {
-      const n = sanitizeName(r.name);
-      const s = Number(r.score);
-      return `<li><span>${escapeHtml(n)}</span><span>${Number.isFinite(s) ? s : 0}</span></li>`;
-    }).join("");
-  }
-
-  function escapeHtml(str){
-    return String(str).replace(/[&<>"']/g, (m) => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
     }[m]));
   }
 
-  function resetGame() {
-    loadLocal();
+  // ===== HiDPI sizing =====
+  function setupHiDPI(){
+    const cssW = canvas.clientWidth;
+    const cssH = canvas.clientHeight;
+
+    const ratio = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
+    canvas.width = Math.floor(cssW * ratio);
+    canvas.height = Math.floor(cssH * ratio);
+
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+    game.w = cssW;
+    game.h = cssH;
+
+    player.x = clamp(player.x || game.w/2, player.r + 10, game.w - player.r - 10);
+    player.y = game.h - (isPhoneLike ? 98 : 82);
+  }
+
+  // ===== World =====
+  function makeStars(n){
+    game.stars = [];
+    for (let i=0;i<n;i++){
+      game.stars.push({
+        x: Math.random()*game.w,
+        y: Math.random()*game.h,
+        r: Math.random()*1.8 + 0.3,
+        v: Math.random()*22 + 8
+      });
+    }
+  }
+
+  function resetGame({keepMenu=false}={}){
+    saveName();
+
     game.running = false;
+    game.paused = false;
     game.over = false;
     game.lastTime = 0;
 
@@ -372,258 +541,279 @@
     game.spawnEvery = 650;
 
     game.enemyTimer = 0;
-    game.enemyEvery = 5000;
+    game.enemyEvery = 2000; // U spawns every 2 seconds
 
     game.shootTimer = 0;
-    game.shootCooldown = 160;
-
     game.difficultyTimer = 0;
 
     game.garlics = [];
     game.enemies = [];
     game.bullets = [];
 
-    player.x = game.w / 2;
-    player.y = game.h - 72;
+    player.x = game.w/2;
+    player.y = game.h - (isPhoneLike ? 98 : 82);
 
-    game.submittedThisRun = false;
+    const starCount = Math.floor(clamp((game.w*game.h)/23000, 70, 140));
+    makeStars(starCount);
 
-    makeStars(80);
-    setOverlay(true);
-    apiGetLeaderboard();
+    if (!keepMenu) hideMenu();
+    syncHUD();
+    draw();
   }
 
-  function startGame() {
+  function startGame(){
     if (game.over) return;
-
-    // set nickname
-    const nm = sanitizeName(nameInput.value);
-    game.playerName = nm;
-    localStorage.setItem(NAME_KEY, nm);
-
-    setOverlay(false);
+    if (game.running) return;
 
     game.running = true;
+    game.paused = false;
+    game.inMenu = false;
+    game.lastTime = 0;
+
     requestAnimationFrame(loop);
   }
 
-  function gameOver() {
+  function gameOver(){
     game.over = true;
     game.running = false;
+    game.paused = false;
 
-    lastInline.textContent = game.score;
-    saveBestIfNeeded();
+    saveBestLast();
+    submitToBoard();
+    renderBoard();
 
-    // submit once
-    if (!game.submittedThisRun) {
-      game.submittedThisRun = true;
-      apiSubmitScore(game.playerName, game.score).then(apiGetLeaderboard);
-    }
-
-    setOverlay(true);
+    showMenu("GAME OVER");
   }
 
-  function loseLife() {
-    game.lives -= 1;
+  function loseLife(){
+    game.lives = Math.max(0, game.lives - 1);
     if (game.lives <= 0) gameOver();
   }
 
-  function spawnGarlic() {
-    const r = Math.random() * 18 + 22;
-    const x = Math.random() * (game.w - r * 2) + r;
-    const vy = Math.random() * 90 + 120 + (Math.max(0, game.score) * 0.20);
-    const vx = (Math.random() - 0.5) * 90;
+  function spawnGarlic(){
+    const r = Math.random()*18 + 22;
+    const x = Math.random()*(game.w - r*2) + r;
+    const vy = Math.random()*90 + 120 + (game.score*0.25);
+    const vx = (Math.random()-0.5)*90;
     game.garlics.push({ x, y: -r - 12, r, vy, vx });
   }
 
-  function spawnEnemyU() {
-    const w = Math.random() * 24 + 58;
-    const h = Math.random() * 16 + 44;
-    const x = Math.random() * (game.w - w) + w / 2;
-    const vy = Math.random() * 70 + 110;
-    const vx = (Math.random() - 0.5) * 60;
+  function spawnEnemyU(){
+    const w = Math.random()*24 + 58;
+    const h = Math.random()*16 + 44;
+    const x = Math.random()*(game.w - w) + w/2;
+
+    // Faster than garlic
+    const vy = Math.random()*120 + 240;   // 240–360
+    const vx = (Math.random()-0.5)*120;   // optional sideways
+
     game.enemies.push({ x, y: -h - 20, w, h, vy, vx });
   }
 
-  function shoot() {
+  function shoot(){
     const bx = player.x;
-    const by = player.y - 22 - 10;
+    const by = player.y - player.r - 10;
     game.bullets.push({ x: bx, y: by, r: 5, vy: 760 });
   }
 
-  function circleRectHit(cx, cy, cr, rx, ry, rw, rh) {
-    const closestX = clamp(cx, rx, rx + rw);
-    const closestY = clamp(cy, ry, ry + rh);
+  function circleRectHit(cx, cy, cr, rx, ry, rw, rh){
+    const closestX = clamp(cx, rx, rx+rw);
+    const closestY = clamp(cy, ry, ry+rh);
     const dx = cx - closestX;
     const dy = cy - closestY;
     return (dx*dx + dy*dy) <= cr*cr;
   }
 
-  function circleCircleHit(ax, ay, ar, bx, by, br) {
-    const dx = ax - bx;
-    const dy = ay - by;
-    const rr = (ar + br) * (ar + br);
-    return (dx*dx + dy*dy) <= rr;
+  function syncHUD(){
+    hudScore.textContent = String(game.score);
+    hudLives.textContent = String(game.lives);
+    hudBest.textContent = String(game.best);
+    hudLast.textContent = String(game.last);
+    menuBest.textContent = String(game.best);
+    menuLast.textContent = String(game.last);
+    hudName.textContent = game.name;
   }
 
-  function update(dt) {
+  function update(dt){
     // stars
-    for (const s of game.stars) {
-      s.y += s.v * dt;
-      if (s.y > game.h + 5) { s.y = -5; s.x = Math.random() * game.w; }
+    for (const s of game.stars){
+      s.y += s.v*dt;
+      if (s.y > game.h + 5){ s.y = -5; s.x = Math.random()*game.w; }
     }
 
-    // player movement
+    // player move (keyboard)
     let dir = 0;
     if (game.input.left) dir -= 1;
     if (game.input.right) dir += 1;
     if (dir !== 0) player.x += dir * player.speed * dt;
-    if (game.input.dragging) player.x = game.input.pointerX + game.input.dragOffsetX;
-    player.x = clamp(player.x, 28, game.w - 28);
 
-    // spawns
-    game.spawnTimer += dt * 1000;
-    if (game.spawnTimer >= game.spawnEvery) {
-      game.spawnTimer = 0;
+    // player move (drag)
+    if (game.input.dragging){
+      player.x = game.input.pointerX + game.input.dragOffsetX;
+    }
+    player.x = clamp(player.x, player.r + 10, game.w - player.r - 10);
+
+    // spawn garlics
+    game.spawnTimer += dt*1000;
+    while (game.spawnTimer >= game.spawnEvery){
+      game.spawnTimer -= game.spawnEvery;
       spawnGarlic();
     }
 
-    game.enemyTimer += dt * 1000;
-    if (game.enemyTimer >= game.enemyEvery) {
-      game.enemyTimer = 0;
+    // spawn U
+    game.enemyTimer += dt*1000;
+    while (game.enemyTimer >= game.enemyEvery){
+      game.enemyTimer -= game.enemyEvery;
       spawnEnemyU();
     }
 
-    // difficulty (no visible timer)
-    game.difficultyTimer += dt * 1000;
-    if (game.difficultyTimer >= 1400) {
+    // difficulty: garlic spawns faster over time
+    game.difficultyTimer += dt*1000;
+    if (game.difficultyTimer >= 1400){
       game.difficultyTimer = 0;
       game.spawnEvery = clamp(game.spawnEvery - 18, 240, 900);
     }
 
-    // AUTO FIRE
-    game.shootTimer += dt * 1000;
-    while (game.shootTimer >= game.shootCooldown) {
-      game.shootTimer -= game.shootCooldown;
+    // auto shooting logic
+    game.shootTimer += dt*1000;
+    const desktopAuto = !isPhoneLike;
+    const phoneAuto = isPhoneLike && game.holdFiring;
+
+    if ((desktopAuto || phoneAuto) && game.shootTimer >= game.shootCooldown){
+      game.shootTimer = 0;
       shoot();
     }
 
     // bullets
-    for (let i = game.bullets.length - 1; i >= 0; i--) {
+    for (let i=game.bullets.length-1;i>=0;i--){
       const b = game.bullets[i];
-      b.y -= b.vy * dt;
-      if (b.y < -40) game.bullets.splice(i, 1);
+      b.y -= b.vy*dt;
+      if (b.y < -50) game.bullets.splice(i,1);
     }
 
     // garlics
-    for (let i = game.garlics.length - 1; i >= 0; i--) {
+    for (let i=game.garlics.length-1;i>=0;i--){
       const g = game.garlics[i];
-      g.y += g.vy * dt;
-      g.x += g.vx * dt;
-      if (g.x < g.r) { g.x = g.r; g.vx *= -1; }
-      if (g.x > game.w - g.r) { g.x = game.w - g.r; g.vx *= -1; }
+      g.y += g.vy*dt;
+      g.x += g.vx*dt;
 
-      // missed garlic => -1 score
-      if (g.y > game.h + g.r + 20) {
-        game.garlics.splice(i, 1);
+      if (g.x < g.r){ g.x = g.r; g.vx *= -1; }
+      if (g.x > game.w - g.r){ g.x = game.w - g.r; g.vx *= -1; }
+
+      // Missed garlic => -1 score
+      if (g.y > game.h + g.r + 20){
+        game.garlics.splice(i,1);
         game.score -= 1;
       }
-      // garlic touching player => no effect
     }
 
-    // enemies U
-    for (let i = game.enemies.length - 1; i >= 0; i--) {
+    // enemies (U)
+    for (let i=game.enemies.length-1;i>=0;i--){
       const e = game.enemies[i];
-      e.y += e.vy * dt;
-      e.x += e.vx * dt;
+      e.y += e.vy*dt;
+      e.x += e.vx*dt;
 
-      const halfW = e.w / 2;
-      if (e.x < halfW) { e.x = halfW; e.vx *= -1; }
-      if (e.x > game.w - halfW) { e.x = game.w - halfW; e.vx *= -1; }
+      const halfW = e.w/2;
+      if (e.x < halfW){ e.x = halfW; e.vx *= -1; }
+      if (e.x > game.w - halfW){ e.x = game.w - halfW; e.vx *= -1; }
 
-      // player hits U => -1 life
-      const rx = e.x - e.w / 2;
-      const ry = e.y - e.h / 2;
-      if (circleRectHit(player.x, player.y, 22, rx, ry, e.w, e.h)) {
-        game.enemies.splice(i, 1);
+      // U touches player => -1 life
+      const rx = e.x - e.w/2;
+      const ry = e.y - e.h/2;
+      if (circleRectHit(player.x, player.y, player.r, rx, ry, e.w, e.h)) {
+        game.enemies.splice(i, 1); // remove so it hits once
         loseLife();
         continue;
       }
 
-      // U reaches bottom => no penalty
-      if (e.y > game.h + e.h + 30) {
-        game.enemies.splice(i, 1);
+      // Skipping U does nothing
+      if (e.y > game.h + e.h + 30){
+        game.enemies.splice(i,1);
       }
     }
 
-    // bullet collisions
-    for (let bi = game.bullets.length - 1; bi >= 0; bi--) {
+    // collisions (bullets)
+    for (let bi=game.bullets.length-1;bi>=0;bi--){
       const b = game.bullets[bi];
 
-      // bullet hits U => remove bullet only (U stays)
-      let used = false;
-      for (let ei = game.enemies.length - 1; ei >= 0; ei--) {
+      // bullet hits U => bullet disappears, U is unaffected
+      let hitU = false;
+      for (let ei=game.enemies.length-1;ei>=0;ei--){
         const e = game.enemies[ei];
-        const rx = e.x - e.w / 2;
-        const ry = e.y - e.h / 2;
-        if (circleRectHit(b.x, b.y, b.r, rx, ry, e.w, e.h)) {
-          game.bullets.splice(bi, 1);
-          used = true;
+        const rx = e.x - e.w/2;
+        const ry = e.y - e.h/2;
+        if (circleRectHit(b.x, b.y, b.r, rx, ry, e.w, e.h)){
+          game.bullets.splice(bi,1);
+          hitU = true;
           break;
         }
       }
-      if (used) continue;
+      if (hitU) continue;
 
-      // bullet hits garlic => +1 score
-      for (let gi = game.garlics.length - 1; gi >= 0; gi--) {
+      // garlic hit => +1 score
+      for (let gi=game.garlics.length-1;gi>=0;gi--){
         const g = game.garlics[gi];
-        if (circleCircleHit(b.x, b.y, b.r, g.x, g.y, g.r)) {
-          game.bullets.splice(bi, 1);
-          game.garlics.splice(gi, 1);
+        const dx = b.x - g.x;
+        const dy = b.y - g.y;
+        const rr = (b.r + g.r) * (b.r + g.r);
+        if ((dx*dx + dy*dy) <= rr){
+          game.bullets.splice(bi,1);
+          game.garlics.splice(gi,1);
           game.score += 1;
           break;
         }
       }
     }
+
+    syncHUD();
   }
 
-  function drawSpaceBg() {
-    ctx.globalAlpha = 0.75;
+  // ===== Drawing =====
+  function drawSpaceBg(){
+    ctx.globalAlpha = 0.82;
     ctx.fillStyle = "rgba(255,255,255,0.95)";
-    for (const s of game.stars) {
+    for (const s of game.stars){
       ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
 
-    const grad = ctx.createRadialGradient(game.w*0.55, game.h*0.15, 10, game.w*0.55, game.h*0.15, game.w*0.75);
-    grad.addColorStop(0, "rgba(120,160,255,0.10)");
+    const grad = ctx.createRadialGradient(game.w*0.55, game.h*0.15, 10, game.w*0.55, game.h*0.15, game.w*0.85);
+    grad.addColorStop(0, "rgba(120,160,255,0.12)");
     grad.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,game.w,game.h);
   }
 
-  function drawPlayerMoney(x, y) {
-    const r = 22;
+  function drawPlayer(){
+    const x = player.x, y = player.y, r = player.r;
+
     ctx.save();
-    ctx.globalAlpha = 0.22;
+    ctx.globalAlpha = 0.25;
     ctx.fillStyle = "rgba(80, 255, 150, 0.55)";
-    ctx.beginPath(); ctx.arc(x, y, r + 14, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, r + 14, 0, Math.PI*2);
+    ctx.fill();
     ctx.restore();
 
     ctx.fillStyle = "rgba(40, 210, 110, 0.95)";
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.fill();
 
     ctx.fillStyle = "rgba(255,255,255,0.18)";
-    ctx.beginPath(); ctx.arc(x - 7, y - 7, 8, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x - 7, y - 7, 8, 0, Math.PI*2);
+    ctx.fill();
 
     ctx.fillStyle = "rgba(0,0,0,0.55)";
-    ctx.font = "800 26px system-ui, sans-serif";
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "900 26px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.fillText("$", x, y + 1);
 
-    ctx.strokeStyle = "rgba(120,255,180,0.45)";
+    ctx.strokeStyle = "rgba(120,255,180,0.55)";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(x, y - r);
@@ -631,25 +821,34 @@
     ctx.stroke();
   }
 
-  function drawGarlic(g) {
+  function drawGarlic(g){
     ctx.fillStyle = "rgba(255, 245, 235, 0.16)";
-    ctx.beginPath(); ctx.arc(g.x, g.y, g.r, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(g.x, g.y, g.r, 0, Math.PI*2);
+    ctx.fill();
+
     ctx.font = `${Math.floor(g.r * 1.22)}px system-ui, Apple Color Emoji, Segoe UI Emoji`;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.fillStyle = "white";
     ctx.fillText("🧄", g.x, g.y + 1);
   }
 
-  function drawEnemyU(e) {
+  function drawEnemyU(e){
     const x = e.x, y = e.y, w = e.w, h = e.h;
-    const left = x - w/2, right = x + w/2, top = y - h/2, bottom = y + h/2;
+    const left = x - w/2;
+    const right = x + w/2;
+    const top = y - h/2;
+    const bottom = y + h/2;
+
     const stroke = Math.max(6, Math.floor(w * 0.14));
     const radius = Math.min(w, h) * 0.24;
 
     ctx.save();
     ctx.globalAlpha = 0.22;
     ctx.lineWidth = stroke + 10;
-    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     ctx.strokeStyle = "rgba(255,70,70,0.55)";
     ctx.beginPath();
     ctx.moveTo(left + radius, top + stroke*0.2);
@@ -663,7 +862,8 @@
 
     ctx.save();
     ctx.lineWidth = stroke;
-    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     ctx.strokeStyle = "rgba(255, 40, 40, 0.95)";
     ctx.beginPath();
     ctx.moveTo(left + radius, top + stroke*0.2);
@@ -675,138 +875,265 @@
     ctx.stroke();
 
     ctx.fillStyle = "rgba(255,255,255,0.10)";
-    ctx.font = `700 ${Math.floor(h*0.22)}px system-ui, sans-serif`;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = `800 ${Math.floor(h*0.22)}px system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.fillText("U", x, y);
     ctx.restore();
   }
 
-  function drawBullets() {
-    for (const b of game.bullets) {
+  function drawBullets(){
+    for (const b of game.bullets){
       ctx.fillStyle = "rgba(140, 255, 190, 0.95)";
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+      ctx.fill();
+
       ctx.fillStyle = "rgba(140, 255, 190, 0.16)";
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r + 6, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r + 6, 0, Math.PI*2);
+      ctx.fill();
     }
   }
 
-  function drawHUD() {
-    // top-left: your best
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
-    ctx.font = "700 18px system-ui, sans-serif";
-    ctx.textAlign = "left"; ctx.textBaseline = "top";
-    ctx.fillText(`YOUR BEST: ${game.best}`, 14, 12);
-
-    // top-right: score
-    ctx.textAlign = "right";
-    ctx.fillText(`SCORE: ${game.score}`, game.w - 14, 12);
-
-    // bottom-left lives as 5 garlic icons
-    const baseX = 14, baseY = game.h - 14, size = 20;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
-    ctx.font = `${size}px system-ui, Apple Color Emoji, Segoe UI Emoji`;
-    for (let i = 0; i < 5; i++) {
-      const x = baseX + i * (size + 6);
-      ctx.globalAlpha = (i < game.lives) ? 1 : 0.25;
-      ctx.fillText("🧄", x, baseY);
-    }
-    ctx.globalAlpha = 1;
+  function drawPaused(){
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.fillRect(0,0,game.w,game.h);
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "900 42px system-ui, sans-serif";
+    ctx.fillText("PAUSED", game.w/2, game.h/2 - 16);
+    ctx.font = "700 16px system-ui, sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.82)";
+    ctx.fillText("Press P / Esc or tap Pause to continue", game.w/2, game.h/2 + 26);
   }
 
-  function draw() {
+  function draw(){
     ctx.clearRect(0,0,game.w,game.h);
     drawSpaceBg();
     drawBullets();
     for (const g of game.garlics) drawGarlic(g);
     for (const e of game.enemies) drawEnemyU(e);
-    drawPlayerMoney(player.x, player.y);
-    drawHUD();
+    drawPlayer();
+    if (game.paused && game.running) drawPaused();
   }
 
-  function loop(t) {
+  function loop(t){
     if (!game.running) return;
 
     if (!game.lastTime) game.lastTime = t;
-    const dt = Math.min(0.033, (t - game.lastTime) / 1000);
+    let dt = Math.min(0.033, (t - game.lastTime) / 1000);
     game.lastTime = t;
 
-    update(dt);
-    draw();
+    if (game.paused) dt = 0;
+    else update(dt);
 
+    draw();
     if (game.running) requestAnimationFrame(loop);
   }
 
-  // UI events
-  startBtn.addEventListener("click", startGame);
-  nameInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") startGame();
-  });
+  // ===== Menu / pause =====
+  function showMenu(titleText){
+    game.inMenu = true;
+    menuOverlay.classList.add("show");
+    document.querySelector(".title").textContent = titleText ? titleText : "GARLIC ORBIT";
+    loadBestLast();
+    renderBoard();
+    syncHUD();
+    updateMenuButtons();
+  }
 
-  // keyboard controls
+  function hideMenu(){
+    game.inMenu = false;
+    menuOverlay.classList.remove("show");
+    updateMenuButtons();
+  }
+
+  function updateMenuButtons(){
+    btnResume.style.display = (game.running && game.paused) ? "inline-flex" : "none";
+  }
+
+  function togglePause(){
+    if (!game.running) return;
+    game.paused = !game.paused;
+    if (!game.paused){
+      game.lastTime = 0;
+      requestAnimationFrame(loop);
+    } else draw();
+    updateMenuButtons();
+  }
+
+  // ===== Input =====
   window.addEventListener("keydown", (e) => {
     if (e.code === "ArrowLeft" || e.code === "KeyA") game.input.left = true;
     if (e.code === "ArrowRight" || e.code === "KeyD") game.input.right = true;
 
-    if (e.code === "Space") {
+    if (e.code === "KeyP" || e.code === "Escape"){
       e.preventDefault();
-      if (!game.running) startGame();
+      if (game.running) togglePause();
     }
 
-    if (e.code === "KeyR") {
+    if (e.code === "KeyM"){
+      e.preventDefault();
+      showMenu();
+      if (game.running && !game.paused) togglePause();
+    }
+
+    if (e.code === "Space"){
+      e.preventDefault();
+      if (!game.running && !game.over){
+        hideMenu();
+        startGame();
+      } else if (game.running && !game.paused){
+        if (game.shootTimer >= game.shootCooldown){
+          game.shootTimer = 0;
+          shoot();
+        }
+      } else if (game.running && game.paused){
+        togglePause();
+      }
+    }
+
+    if (e.code === "KeyR"){
+      e.preventDefault();
       resetGame();
-      draw();
+      hideMenu();
+      startGame();
     }
   });
+
   window.addEventListener("keyup", (e) => {
     if (e.code === "ArrowLeft" || e.code === "KeyA") game.input.left = false;
     if (e.code === "ArrowRight" || e.code === "KeyD") game.input.right = false;
   });
 
-  // touch / pointer
-  function getPointerPos(ev) {
+  function getPointerPos(ev){
     const rect = canvas.getBoundingClientRect();
-    return { x: (ev.clientX - rect.left), y: (ev.clientY - rect.top) };
+    return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
   }
+
   canvas.addEventListener("pointerdown", (ev) => {
     canvas.setPointerCapture(ev.pointerId);
     game.input.pointerDown = true;
+
+    if (menuOverlay.classList.contains("show")) return;
+
     const p = getPointerPos(ev);
     game.input.pointerX = p.x;
 
-    if (!game.running) startGame();
+    if (!game.running && !game.over) startGame();
+
+    if (game.running && game.paused){
+      togglePause();
+      return;
+    }
 
     const dx = p.x - player.x;
     const dy = p.y - player.y;
-    if (Math.abs(dx) < 90 && Math.abs(dy) < 90) {
+    const nearPlayer = (Math.abs(dx) < 95 && Math.abs(dy) < 95);
+
+    if (nearPlayer){
       game.input.dragging = true;
       game.input.dragOffsetX = player.x - p.x;
+      if (isPhoneLike) game.holdFiring = true;
+    } else {
+      if (game.running && !game.paused && game.shootTimer >= game.shootCooldown){
+        game.shootTimer = 0;
+        shoot();
+      }
     }
   });
+
   canvas.addEventListener("pointermove", (ev) => {
     if (!game.input.pointerDown) return;
     const p = getPointerPos(ev);
     game.input.pointerX = p.x;
   });
-  canvas.addEventListener("pointerup", () => {
+
+  function endPointer(){
     game.input.pointerDown = false;
     game.input.dragging = false;
+    game.holdFiring = false;
+  }
+
+  canvas.addEventListener("pointerup", endPointer);
+  canvas.addEventListener("pointercancel", endPointer);
+  canvas.addEventListener("lostpointercapture", endPointer);
+
+  // ===== Buttons =====
+  btnPause.addEventListener("click", () => {
+    if (!game.running) return;
+    togglePause();
   });
 
-  // resize
+  btnMenu.addEventListener("click", () => {
+    showMenu();
+    if (game.running && !game.paused) togglePause();
+  });
+
+  btnStart.addEventListener("click", () => {
+    saveName();
+    resetGame({keepMenu:true});
+    hideMenu();
+    startGame();
+  });
+
+  btnResume.addEventListener("click", () => {
+    saveName();
+    hideMenu();
+    if (game.running && game.paused) togglePause();
+  });
+
+  btnRestart.addEventListener("click", () => {
+    saveName();
+    resetGame({keepMenu:true});
+    hideMenu();
+    startGame();
+  });
+
+  btnResetBoard.addEventListener("click", () => {
+    localStorage.removeItem(BOARD_KEY);
+    renderBoard();
+  });
+
+  nickInput.addEventListener("input", () => { saveName(); });
+
+  tabMain.addEventListener("click", () => {
+    tabMain.classList.add("active");
+    tabBoard.classList.remove("active");
+    viewMain.style.display = "";
+    viewBoard.style.display = "none";
+  });
+
+  tabBoard.addEventListener("click", () => {
+    tabBoard.classList.add("active");
+    tabMain.classList.remove("active");
+    viewMain.style.display = "none";
+    viewBoard.style.display = "";
+    renderBoard();
+  });
+
+  btnBack.addEventListener("click", () => { tabMain.click(); });
+
+  // ===== Resize handling =====
   const ro = new ResizeObserver(() => {
     setupHiDPI();
-    player.y = game.h - 72;
+    player.y = game.h - (isPhoneLike ? 98 : 82);
     draw();
   });
   ro.observe(canvas);
 
-  // init
-  loadLocal();
+  // ===== Init =====
+  loadName();
+  loadBestLast();
   setupHiDPI();
-  resetGame();
-  draw();
+  makeStars(Math.floor(clamp((game.w*game.h)/23000, 70, 140)));
+  resetGame({keepMenu:true});
+  renderBoard();
+  showMenu();
 })();
 </script>
 </body>
 </html>
+
