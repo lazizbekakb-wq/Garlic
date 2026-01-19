@@ -1,4 +1,3 @@
-```html
 <!doctype html>
 <html lang="en">
 <head>
@@ -19,6 +18,7 @@
       overscroll-behavior: none;
     }
 
+    /* Layout wrapper: fullscreen on phone, centered panel on desktop */
     .stage{
       position: relative;
       width: 100vw;
@@ -39,6 +39,7 @@
       overflow: hidden;
     }
 
+    /* Phone: full screen vertical */
     @media (max-width: 720px), (pointer: coarse) {
       .frame{
         width: 100vw;
@@ -57,6 +58,7 @@
       touch-action: none;
     }
 
+    /* Top bar */
     .topbar{
       position: absolute;
       top: 10px;
@@ -81,6 +83,7 @@
       -webkit-backdrop-filter: blur(10px);
       font-size: 14px;
       color: rgba(255,255,255,0.92);
+      flex-wrap: wrap;
     }
     .pill strong{ font-weight: 800; }
     .btn{
@@ -102,6 +105,7 @@
       border-color: rgba(255,70,70,0.22);
     }
 
+    /* Menu overlay (DOM) */
     .overlay{
       position: absolute;
       inset: 0;
@@ -383,10 +387,13 @@
     enemyTimer: 0,
     enemyEvery: 2000, // U spawns every 2 seconds
 
-    // U speed ramp: +20% every 2 seconds until player loses
+    // U speed ramp: +10% every 2 seconds until player loses
     uSpeedMult: 1,
     uRampTimer: 0,
     uRampEvery: 2000,
+
+    // U chase strength (px/s) will be multiplied by uSpeedMult
+    uChaseSpeedBase: 180,
 
     shootTimer: 0,
     shootCooldown: 160, // ms
@@ -614,11 +621,12 @@
     const h = Math.random()*16 + 44;
     const x = Math.random()*(game.w - w) + w/2;
 
-    // Start same-ish speed as garlics, then ramp by multiplier
-    const baseVy = Math.random()*90 + 120;     // 120–210 (like garlic baseline)
-    const baseVx = (Math.random()-0.5)*90;     // like garlic sideways
+    // Fall speed starts like garlic, ramps by multiplier
+    const baseVy = Math.random()*90 + 120;
     const vy = baseVy * game.uSpeedMult;
-    const vx = baseVx * game.uSpeedMult;
+
+    // Start with small random vx; chase logic will override each frame
+    const vx = (Math.random()-0.5)*30;
 
     game.enemies.push({ x, y: -h - 20, w, h, vy, vx });
   }
@@ -687,11 +695,11 @@
       game.spawnEvery = clamp(game.spawnEvery - 18, 240, 900);
     }
 
-    // U speed ramps up: +20% every 2 seconds until player loses
+    // U speed ramps up: +10% every 2 seconds until player loses
     game.uRampTimer += dt*1000;
     while (game.uRampTimer >= game.uRampEvery){
       game.uRampTimer -= game.uRampEvery;
-      game.uSpeedMult *= 1.2;
+      game.uSpeedMult *= 1.1;
     }
 
     // auto shooting logic
@@ -727,21 +735,28 @@
       }
     }
 
-    // enemies (U)
+    // enemies (U) - chase player
     for (let i=game.enemies.length-1;i>=0;i--){
       const e = game.enemies[i];
-      e.y += e.vy*dt;
-      e.x += e.vx*dt;
 
+      // Always chase player horizontally
+      const chaseSpeed = (game.uChaseSpeedBase * game.uSpeedMult);
+      const dx = player.x - e.x;
+      const step = clamp(dx, -chaseSpeed*dt, chaseSpeed*dt);
+      e.x += step;
+
+      // Fall
+      e.y += e.vy*dt;
+
+      // Clamp inside screen (no bounce needed)
       const halfW = e.w/2;
-      if (e.x < halfW){ e.x = halfW; e.vx *= -1; }
-      if (e.x > game.w - halfW){ e.x = game.w - halfW; e.vx *= -1; }
+      e.x = clamp(e.x, halfW, game.w - halfW);
 
       // U touches player => -1 life
       const rx = e.x - e.w/2;
       const ry = e.y - e.h/2;
       if (circleRectHit(player.x, player.y, player.r, rx, ry, e.w, e.h)) {
-        game.enemies.splice(i, 1); // remove so it hits once
+        game.enemies.splice(i, 1);
         loseLife();
         continue;
       }
@@ -1156,4 +1171,3 @@
 </script>
 </body>
 </html>
-```
