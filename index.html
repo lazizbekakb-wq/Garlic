@@ -1,3 +1,4 @@
+```html
 <!doctype html>
 <html lang="en">
 <head>
@@ -382,6 +383,11 @@
     enemyTimer: 0,
     enemyEvery: 2000, // U spawns every 2 seconds
 
+    // U speed ramp: +20% every 2 seconds until player loses
+    uSpeedMult: 1,
+    uRampTimer: 0,
+    uRampEvery: 2000,
+
     shootTimer: 0,
     shootCooldown: 160, // ms
 
@@ -541,7 +547,12 @@
     game.spawnEvery = 650;
 
     game.enemyTimer = 0;
-    game.enemyEvery = 2000; // U spawns every 2 seconds
+    game.enemyEvery = 2000;
+
+    // reset U ramp
+    game.uSpeedMult = 1;
+    game.uRampTimer = 0;
+    game.uRampEvery = 2000;
 
     game.shootTimer = 0;
     game.difficultyTimer = 0;
@@ -603,9 +614,11 @@
     const h = Math.random()*16 + 44;
     const x = Math.random()*(game.w - w) + w/2;
 
-    // Faster than garlic
-    const vy = Math.random()*120 + 240;   // 240–360
-    const vx = (Math.random()-0.5)*120;   // optional sideways
+    // Start same-ish speed as garlics, then ramp by multiplier
+    const baseVy = Math.random()*90 + 120;     // 120–210 (like garlic baseline)
+    const baseVx = (Math.random()-0.5)*90;     // like garlic sideways
+    const vy = baseVy * game.uSpeedMult;
+    const vx = baseVx * game.uSpeedMult;
 
     game.enemies.push({ x, y: -h - 20, w, h, vy, vx });
   }
@@ -672,6 +685,13 @@
     if (game.difficultyTimer >= 1400){
       game.difficultyTimer = 0;
       game.spawnEvery = clamp(game.spawnEvery - 18, 240, 900);
+    }
+
+    // U speed ramps up: +20% every 2 seconds until player loses
+    game.uRampTimer += dt*1000;
+    while (game.uRampTimer >= game.uRampEvery){
+      game.uRampTimer -= game.uRampEvery;
+      game.uSpeedMult *= 1.2;
     }
 
     // auto shooting logic
@@ -1136,4 +1156,4 @@
 </script>
 </body>
 </html>
-
+```
